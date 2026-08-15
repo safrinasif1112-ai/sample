@@ -50,16 +50,25 @@ pipeline {
             }
         }
 
-          stage('Build') {
+          stage('Check Java') {
             steps {
                 sh '''
-                    echo "Java version:"
-                    java -version
+                    echo "JAVA_HOME=$JAVA_HOME"
+                    which java
+                    java --version
 
-                    echo "Maven version:"
-                    mvn -version
+                    which javac
+                    javac --version
 
-                    echo "Building application..."
+                    which mvn
+                    mvn --version
+                '''
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
                     mvn clean -B -Denforcer.skip=true package
                 '''
             }
