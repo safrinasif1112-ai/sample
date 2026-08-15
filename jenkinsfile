@@ -49,60 +49,53 @@ pipeline {
                 git url: "${GIT_REPO}", branch: 'main'
             }
         }
-stage('Check Source') {
-    steps {
-        sh '''
-            echo "Workspace:"
-            pwd
 
-            echo "Files:"
-            ls -la
-
-            echo "Searching for pom.xml:"
-            find . -name "pom.xml" -type f
-        '''
-    }
-}
-        stage('Build') {
+          stage('Build') {
             steps {
-                script {
-                    sh '''
-                        echo "Building Java application..."
-                        mvn clean -B -Denforcer.skip=true package
-                    '''
-                }
+                sh '''
+                    echo "Java version:"
+                    java -version
+
+                    echo "Maven version:"
+                    mvn -version
+
+                    echo "Building application..."
+                    mvn clean -B -Denforcer.skip=true package
+                '''
             }
         }
-         stage('UI Test') {
-              steps {
-                  sh '''
-                      echo "Starting Java application..."
 
-                      java -jar target/*.jar > app.log 2>&1 & APP_PID=$!
+        stage('Start Application') {
+            steps {
+                sh '''
+                    nohup java -jar target/*.jar > app.log 2>&1 &
+                    echo $! > app.pid
+                    sleep 10
+                    cat app.log
+                '''
+            }
+        }
 
-                      echo "Waiting for application to start..."
+        stage('UI Test') {
+            steps {
+                sh '''
+                    echo "Running UI test..."
+                    curl -f http://localhost:8081/
+                    echo ""
+                    echo "UI test passed!"
+                '''
+            }
+        }
 
-                      for i in {1..30}; do
-                      if curl -f http://52.66.207.18:8080/ > /dev/null 2>&1; then
-                      echo "Application is running"
-                      break
-                      fi
-
-                echo "Waiting..."
-                sleep 2
-            done
-
-            echo "Testing application UI..."
-
-            curl -f http://52.66.207.18:8080/
-
-            echo "UI/Application test passed"
-
-            kill $APP_PID || true
-        '''
-    }
+        stage('Stop Application') {
+            steps {
+                sh '''
+                    if [ -f app.pid ]; then
+                        kill $(cat app.pid) || true
+                    fi
+                '''
+            }
 }
-
         stage('Login to AWS ECR') {
             steps {
         withCredentials([
