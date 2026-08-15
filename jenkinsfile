@@ -114,8 +114,8 @@ pipeline {
             sh '''
                 aws ecr get-login-password --region ap-south-1 |
                 docker login \
-                  --username AWS \
-                  --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
+                  --username asif \
+                  --password-stdin 659816910000.dkr.ecr.ap-south-1.amazonaws.com
             '''               }
             }
         }
