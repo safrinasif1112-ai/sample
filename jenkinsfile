@@ -1,0 +1,156 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/afrinasif1112-ai/sample.git'
+        AWS_REGION = 'ap-south-1'
+        ECR_REPO_NAME = 'jenkins'
+        ECR_PUBLIC_REPO_URI = '659816910000.dkr.ecr.ap-south-1.amazonaws.com/jenkins'
+        IMAGE_TAG = 'latest'
+        AWS_ACCOUNT_ID = '659816910000'
+        IMAGE_URI = "${ECR_PUBLIC_REPO_URI}:${IMAGE_TAG}"
+        EKS_CLUSTER = 'my-cluster'
+    }
+
+    stages {
+        stage('Install AWS CLI') {
+            steps {
+                script {
+                    sh '''
+                        set -e
+                        echo "Installing AWS CLI..."
+                        sudo apt update && sudo apt install -y unzip curl
+
+                        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                        rm -rf aws
+                        unzip -q awscliv2.zip
+                        sudo ./aws/install --update
+                        aws --version
+                    '''
+                }
+            }
+        }
+
+               stage('AWS Test') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    sh '''
+                        aws sts get-caller-identity
+                    '''      }
+    }
+}
+
+
+        stage('Clone Repository') {
+            steps {
+                git url: "${GIT_REPO}", branch: 'main'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                        echo "Building Java application..."
+                        mvn clean -B -Denforcer.skip=true package
+                    '''
+                }
+            }
+        }
+         stage('UI Test') {
+              steps {
+                  sh '''
+                      echo "Starting Java application..."
+
+                      java -jar target/*.jar > app.log 2>&1 & APP_PID=$!
+
+                      echo "Waiting for application to start..."
+
+                      for i in {1..30}; do
+                      if curl -f http://localhost:8080/ > /dev/null 2>&1; then
+                      echo "Application is running"
+                      break
+                      fi
+
+                echo "Waiting..."
+                sleep 2
+            done
+
+            echo "Testing application UI..."
+
+            curl -f http://localhost:8080/
+
+            echo "UI/Application test passed"
+
+            kill $APP_PID || true
+        '''
+    }
+}
+
+        stage('Login to AWS ECR') {
+            steps {
+        withCredentials([
+            [$class: 'AmazonWebServicesCredentialsBinding',
+             credentialsId: 'aws-credentials']
+        ]) {
+            sh '''
+                aws ecr get-login-password --region ap-south-1 |
+                docker login \
+                  --username AWS \
+                  --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
+            '''               }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh '''
+                        echo "Building Docker image..."
+                        docker build -t ${IMAGE_URI} .
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker Image to ECR') {
+            steps {
+                script {
+                    sh '''
+                        echo "Pushing Docker image to ECR..."
+                        docker push ${IMAGE_URI}
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    sh '''
+                        echo "Updating kubeconfig..."
+                        mkdir -p /var/lib/jenkins/.kube
+                        aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER --kubeconfig /var/lib/jenkins/.kube/config
+                        export KUBECONFIG=/var/lib/jenkins/.kube/config
+
+                        echo "Applying Kubernetes manifests..."
+                        kubectl apply -f Jenkinsandjava/deploymentjava.yaml --validate=false
+                        kubectl apply -f Jenkinsandjava/servicelb.yaml --validate=false
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "Docker image pushed to ECR successfully and deployed."
+        }
+        failure {
+            echo "Pipeline failed."
+        }
+    }
+}
