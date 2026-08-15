@@ -83,7 +83,7 @@ stage('Check Source') {
                       echo "Waiting for application to start..."
 
                       for i in {1..30}; do
-                      if curl -f http://localhost:8080/ > /dev/null 2>&1; then
+                      if curl -f http://52.66.207.18:8080/ > /dev/null 2>&1; then
                       echo "Application is running"
                       break
                       fi
@@ -94,7 +94,7 @@ stage('Check Source') {
 
             echo "Testing application UI..."
 
-            curl -f http://localhost:8080/
+            curl -f http://52.66.207.18:8080/
 
             echo "UI/Application test passed"
 
