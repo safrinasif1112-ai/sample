@@ -49,7 +49,20 @@ pipeline {
                 git url: "${GIT_REPO}", branch: 'main'
             }
         }
+stage('Check Source') {
+    steps {
+        sh '''
+            echo "Workspace:"
+            pwd
 
+            echo "Files:"
+            ls -la
+
+            echo "Searching for pom.xml:"
+            find . -name "pom.xml" -type f
+        '''
+    }
+}
         stage('Build') {
             steps {
                 script {
