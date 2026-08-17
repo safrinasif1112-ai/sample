@@ -178,8 +178,8 @@ pwd
 echo "Repository files:"
 find . -maxdepth 3 -type f
 
-                        kubectl apply -f sample/deployment.yaml --validate=false
-                        kubectl apply -f sample/servicelb.yaml --validate=false
+                        kubectl apply -f deployment.yaml --validate=false
+                        kubectl apply -f servicelb.yaml --validate=false
 
                         kubectl get pods
                         kubectl get svc
