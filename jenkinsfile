@@ -172,6 +172,11 @@ stage('Check AWS') {
 
 
                         kubectl get nodes
+echo "Workspace:"
+pwd
+
+echo "Repository files:"
+find . -maxdepth 3 -type f
 
                         kubectl apply -f sample/deployment.yaml --validate=false
                         kubectl apply -f sample/servicelb.yaml --validate=false
