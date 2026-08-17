@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: java-app
-          image: jenkins:latest
+          image: 659816910000.dkr.ecr.ap-south-1.amazonaws.com/jenkins:latest
           ports:
             - containerPort: 8081
