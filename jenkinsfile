@@ -156,21 +156,31 @@ stage('Check AWS') {
 
         stage('Deploy to EKS') {
             steps {
-                script {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
                     sh '''
-                        echo "Updating kubeconfig..."
                         mkdir -p /var/lib/jenkins/.kube
-                        aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER --kubeconfig /var/lib/jenkins/.kube/config
+
+                        aws eks update-kubeconfig \
+                          --region $AWS_REGION \
+                          --name $EKS_CLUSTER \
+                          --kubeconfig /var/lib/jenkins/.kube/config
+
                         export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                        echo "Applying Kubernetes manifests..."
+                        kubectl get nodes
+
                         kubectl apply -f sample/deployment.yaml --validate=false
                         kubectl apply -f sample/servicelb.yaml --validate=false
+
+                        kubectl get pods
+                        kubectl get svc
                     '''
                 }
             }
         }
-    }
     
     post {
         success {
