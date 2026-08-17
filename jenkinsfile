@@ -181,6 +181,7 @@ stage('Check AWS') {
                 }
             }
         }
+}
     
     post {
         success {
@@ -191,4 +192,4 @@ stage('Check AWS') {
         }
     }
 }
-}
+
