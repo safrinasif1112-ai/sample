@@ -141,6 +141,20 @@ pipeline {
                 }
             }
         }
+stage('Check AWS') {
+    steps {
+        sh '''
+            echo "Checking AWS identity..."
+            aws sts get-caller-identity
+
+            echo "Checking AWS environment..."
+            env | grep '^AWS_' || true
+
+            echo "Checking AWS config..."
+            aws configure list
+        '''
+    }
+}
 
         stage('Deploy to EKS') {
             steps {
