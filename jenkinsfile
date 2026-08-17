@@ -143,16 +143,14 @@ pipeline {
         }
 stage('Check AWS') {
     steps {
-        sh '''
-            echo "Checking AWS identity..."
-            aws sts get-caller-identity
-
-            echo "Checking AWS environment..."
-            env | grep '^AWS_' || true
-
-            echo "Checking AWS config..."
-            aws configure list
-        '''
+        withCredentials([
+            [$class: 'AmazonWebServicesCredentialsBinding',
+             credentialsId: 'aws-credentials']
+        ]) {
+            sh '''
+                aws sts get-caller-identity
+            '''
+        }
     }
 }
 
