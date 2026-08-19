@@ -74,36 +74,16 @@ pipeline {
             }
         }
 
-        stage('Start Application') {
-            steps {
-                sh '''
-                    nohup java -jar target/*.jar > app.log 2>&1 &
-                    echo $! > app.pid
-                    sleep 10
-                    cat app.log
-                '''
-            }
+       stage('JUnit Test') {
+    steps {
+        echo 'Running JUnit tests...'
+        sh 'mvn test'
+    }
+    post {
+        always {
+            junit 'target/surefire-reports/*.xml'
         }
-
-        stage('UI Test') {
-            steps {
-                sh '''
-                    echo "Running UI test..."
-                    curl -f http://localhost:8081/
-                    echo ""
-                    echo "UI test passed!"
-                '''
-            }
-        }
-
-        stage('Stop Application') {
-            steps {
-                sh '''
-                    if [ -f app.pid ]; then
-                        kill $(cat app.pid) || true
-                    fi
-                '''
-            }
+    }
 }
         stage('Login to AWS ECR') {
             steps {
